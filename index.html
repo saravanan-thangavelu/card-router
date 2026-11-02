@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Card Router" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Smart Credit Card Router</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+      --green: #4ade80;
+      --amber: #fbbf24;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 16px; max-width: 520px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    h1 { font-size: 1.2rem; font-weight: 700; }
+    .quarter-badge { background: #334155; color: var(--accent); padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+    .gps-btn {
+      width: 100%; background: linear-gradient(135deg, #0284c7, #2563eb); color: white; border: none;
+      padding: 14px; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    }
+    .gps-btn:active { transform: scale(0.98); }
+    .search-box {
+      width: 100%; background: var(--card-bg); border: 1px solid #334155; color: var(--text);
+      padding: 12px 14px; border-radius: 10px; font-size: 0.95rem; margin-bottom: 14px;
+    }
+    .category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+    .cat-pill {
+      background: var(--card-bg); border: 1px solid #334155; color: var(--text); padding: 10px 12px;
+      border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-align: left;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cat-pill.active { border-color: var(--accent); background: #1e3a5f; }
+    .result-box {
+      background: linear-gradient(145deg, #1e293b, #0f172a); border: 2px solid var(--green);
+      border-radius: 14px; padding: 16px; margin-bottom: 14px;
+    }
+    .detected-place { font-size: 0.78rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; font-weight: 700; }
+    .best-card-title { font-size: 1.28rem; font-weight: 800; margin-bottom: 6px; color: #fff; }
+    .reward-pill { display: inline-block; background: rgba(74, 222, 128, 0.15); color: var(--green); font-weight: 700; padding: 4px 10px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 8px; }
+    .card-notes { font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
+    .backup-card { margin-top: 10px; padding-top: 10px; border-top: 1px solid #334155; font-size: 0.82rem; color: var(--amber); }
+    .nearby-list { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .nearby-chip { background: #334155; color: #e2e8f0; border: none; border-radius: 999px; padding: 6px 11px; font-size: 0.78rem; cursor: pointer; }
+    .config-card {
+      background: var(--card-bg); border: 1px solid #334155; border-radius: 12px; padding: 12px; font-size: 0.8rem; color: var(--muted);
+    }
+    .config-card h3 { color: var(--text); font-size: 0.85rem; margin-bottom: 6px; }
+    .config-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #263349; }
+    .config-row:last-child { border-bottom: none; }
+    .config-val { color: var(--accent); font-weight: 600; text-align: right; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>💳 Family Card Router</h1>
+    <span id="quarterBadge" class="quarter-badge">Q4 2026</span>
+  </header>
+
+  <button class="gps-btn" id="gpsBtn" onclick="detectStoreByGPS()">
+    📍 Detect My Current Store (GPS)
+  </button>
+
+  <div id="nearbyContainer" style="display:none; margin-bottom:14px;">
+    <div style="font-size:0.78rem; color:var(--muted); margin-bottom:4px;">Nearby stores found (tap to switch):</div>
+    <div class="nearby-list" id="nearbyList"></div>
+  </div>
+
+  <input type="text" id="storeInput" class="search-box" placeholder="Search store (Whole Foods, Costco, Hy-Vee, Chipotle)..." oninput="onStoreSearch(this.value)" />
+
+  <div class="result-box" id="recommendationBox">
+    <div class="detected-place" id="detectedPlace">SELECT A STORE OR TAP GPS</div>
+    <div class="best-card-title" id="bestCardName">Tap a Category Below</div>
+    <div class="reward-pill" id="bestCardRate">Up to 5% Cash Back</div>
+    <div class="card-notes" id="bestCardNotes">Shared family card guide for iPhone & Samsung Galaxy.</div>
+    <div class="backup-card" id="backupCardInfo" style="display:none;"></div>
+  </div>
+
+  <div class="category-grid" id="categoryGrid"></div>
+
+  <div class="config-card">
+    <h3>⚙️ Active Quarterly & On-Demand Config</h3>
+    <div class="config-row">
+      <span>Chase Freedom (6046) 5%:</span>
+      <span class="config-val" id="cfgFreedom">Grocery, Dining (Q4)</span>
+    </div>
+    <div class="config-row">
+      <span>U.S. Bank Cash+ (6395) 5%:</span>
+      <span class="config-val" id="cfgCashPlus5">Home Utilities, Cell Phone</span>
+    </div>
+    <div class="config-row">
+      <span>U.S. Bank Cash+ (6395) 2%:</span>
+      <span class="config-val" id="cfgCashPlus2">Grocery Stores</span>
+    </div>
+    <div class="config-row">
+      <span>Best Buy Visa (1452) Q4 5%:</span>
+      <span class="config-val" id="cfgBestBuy">Not Enrolled / Select Category</span>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // SINGLE PLACE TO UPDATE QUARTERLY & ON-DEMAND CATEGORIES
+    // =========================================================================
+    const ACTIVE_CONFIG = {
+      lastUpdated: "2026-11-02",
+      freedom_6046: {
+        Q4_2026: ["grocery", "dining"],
+        Q1_2027: ["grocery", "streaming"]
+      },
+      cash_plus_6395: {
+        five_percent: ["Home Utilities", "Cell Phone Providers"],
+        two_percent: "Grocery Stores"
+      },
+      best_buy_1452_bonus: {
+        active: false,
+        chosen_category: "none", // Options: "clothing", "auto", "travel", "utilities", "grocery", "none"
+        label: "Unenrolled (Q4 window closed 10/31; enroll early in Q1!)"
+      }
+    };
+
+    function getCurrentQuarter() {
+      const now = new Date();
+      const m = now.getMonth() + 1;
+      const y = now.getFullYear();
+      const q = Math.ceil(m / 3);
+      return { q, y, key: `Q${q}_${y}`, label: `Q${q} ${y}` };
+    }
+
+    const quarter = getCurrentQuarter();
+    document.getElementById('quarterBadge').textContent = quarter.label;
+    document.getElementById('cfgBestBuy').textContent = ACTIVE_CONFIG.best_buy_1452_bonus.label;
+
+    const CATEGORIES = {
+      grocery: {
+        label: "🛒 Grocery Store",
+        getRule: (q) => ({
+          primary: "Chase Freedom (6046)",
+          rate: "5% Cash Back / 5x UR",
+          notes: "5% in Q4 2026 & Q1 2027 up to $1,500/qtr (excludes Walmart & Target).",
+          backup: "Overflow (> $1,500/qtr): U.S. Bank Cash+ (6395) for 2% unlimited Grocery."
+        })
+      },
+      whole_foods: {
+        label: "🥬 Whole Foods / Amazon",
+        getRule: () => ({
+          primary: "Chase Amazon Prime (4713)",
+          rate: "5% Cash Back",
+          notes: "Unlimited 5% back at Whole Foods Market, Amazon Fresh, and Amazon.com.",
+          backup: "Backup: Chase Freedom (6046) 5% Grocery in Q4/Q1."
+        })
+      },
+      costco_warehouse: {
+        label: "📦 Costco Warehouse",
+        getRule: () => ({
+          primary: "Costco Anywhere Visa (Citi)",
+          rate: "2% Cash Back",
+          notes: "2% on all Costco in-warehouse and Costco.com purchases (Visa only in warehouse).",
+          backup: "Backup: Any Visa card (Chase Freedom/Sapphire earn 1x)."
+        })
+      },
+      gas_ev: {
+        label: "⛽ Gas & EV Charging",
+        getRule: () => ({
+          primary: "Costco Anywhere Visa (Citi)",
+          rate: "5% Costco Gas / 4% Other Gas & EV",
+          notes: "5% at Costco Gas, 4% at all other eligible gas stations & EV charging (up to $7,000/yr).",
+          backup: "Backup: My Best Buy Visa (1452) earns 3% on Gas."
+        })
+      },
+      dining: {
+        label: "🍽️ Dining & Restaurants",
+        getRule: (q) => q.q === 4 ? ({
+          primary: "Chase Freedom (6046)",
+          rate: "5% Cash Back (Q4 Bonus)",
+          notes: "Q4 5% rotating category covers Dining & Restaurants (shares $1,500/qtr cap with Grocery).",
+          backup: "Backup / Overflow: Chase Sapphire (8255) for 3x UR or Costco Citi Visa for 3%."
+        }) : ({
+          primary: "Chase Sapphire (8255) or Costco Citi",
+          rate: "3x UR Points / 3% Cash Back",
+          notes: "Use Chase Sapphire (8255) for 3x Ultimate Rewards or Costco Citi Visa for 3% cash back.",
+          backup: "Check Chase Offers & U.S. Bank Cash-Back Deals for targeted 5%-10% restaurant deals."
+        })
+      },
+      best_buy: {
+        label: "💻 Best Buy",
+        getRule: () => ({
+          primary: "My Best Buy Visa (1452)",
+          rate: "5% in Best Buy Rewards",
+          notes: "5% back in Best Buy Rewards or promotional financing.",
+          backup: "Check Chase Offers on 8255/6046 first for targeted 5%-10% statement credits."
+        })
+      },
+      auto_maintenance: {
+        label: "🔧 Auto Maintenance",
+        getRule: (q) => q.q === 4 && ACTIVE_CONFIG.best_buy_1452_bonus.chosen_category === "auto" ? ({
+          primary: "My Best Buy Visa (1452)",
+          rate: "5% Q4 Targeted Offer",
+          notes: "5% back on Auto Maintenance (tires, oil changes, auto repair, dealerships, AutoZone, O'Reilly) through 12/31/2026 (up to $1,500 spend / $75 reward).",
+          backup: "Backup: Check Chase Offers (8255/6046) or U.S. Bank Deals."
+        }) : ({
+          primary: "Check Chase / U.S. Bank Offers",
+          rate: "1% Base + Targeted Offers",
+          notes: "Check Chase Offers or U.S. Bank Cash-Back Deals for auto service/parts credits.",
+          backup: "Default 1x UR on Chase Sapphire (8255) or Freedom (6046)."
+        })
+      },
+      clothing: {
+        label: "🛍️ TJX / Kohl's / JCP",
+        getRule: () => ({
+          primary: "Wife's Store Card (TJX / Kohl's / JCPenney)",
+          rate: "5% TJX / 7.5% Kohl's + Store Coupons",
+          notes: "• TJ Maxx, Marshalls, HomeGoods, Sierra → Wife's TJX Rewards Card (5%)\n• Kohl's → Wife's Kohl's Card (7.5% rewards + exclusive coupons)\n• JCPenney → Wife's JCPenney Card (CashPass + coupons)",
+          backup: "Other clothing stores: Check Chase Offers (8255/6046/4713) or U.S. Bank Deals."
+        })
+      },
+      travel: {
+        label: "✈️ Travel (Flights/Hotels/Cars)",
+        getRule: () => ({
+          primary: "Costco Citi (3%) or Chase Sapphire (8255)",
+          rate: "3% Cash Back or 2x UR + Primary CDW",
+          notes: "Use Chase Sapphire (8255) for rental cars (Primary Auto CDW insurance) & trip protection; Costco Citi for 3% cash back.",
+          backup: ACTIVE_CONFIG.best_buy_1452_bonus.chosen_category === "travel"
+            ? "Best Buy Visa (1452) active at 5% for Travel (up to $1,500)!"
+            : "Can also activate 5% Travel on Best Buy Visa (1452) for Q4."
+        })
+      },
+      utilities_cell: {
+        label: "⚡ Utilities & Cell Phone",
+        getRule: () => ({
+          primary: "U.S. Bank Cash+ (6395)",
+          rate: "5% Cash Back",
+          notes: "Enrolled 5% categories: Home Utilities (Evergy, Atmos, City of Olathe) + Cell Phone Providers (up to $2,000/qtr).",
+          backup: "Keep recurring bills pointed to 6395."
+        })
+      },
+      streaming: {
+        label: "📺 Streaming Services",
+        getRule: (q) => q.q === 1 ? ({
+          primary: "Chase Freedom (6046)",
+          rate: "5% Cash Back (Q1 Bonus)",
+          notes: "Q1 5% rotating category covers Top Streaming Services.",
+          backup: "Backup: Chase Sapphire (8255) earns 3x on Select Streaming year-round."
+        }) : ({
+          primary: "Chase Sapphire (8255)",
+          rate: "3x UR Points",
+          notes: "3x Ultimate Rewards on Select Streaming year-round (5% on Freedom 6046 starts in Q1).",
+          backup: "U.S. Bank Cash+ (6395) if Streaming is selected as a 5% category."
+        })
+      }
+    };
+
+    const STORE_KEYWORDS = [
+      { keywords: ["whole foods", "amazon fresh", "amazon"], cat: "whole_foods" },
+      { keywords: ["costco gas", "shell", "quiktrip", "qt", "casey", "phillips 66", "bp", "exxon", "mobil", "chevron", "sinclair", "loves", "pilot", "chargepoint", "tesla supercharger", "evgo", "electrify america", "fuel", "gas_station", "charging_station"], cat: "gas_ev" },
+      { keywords: ["costco"], cat: "costco_warehouse" },
+      { keywords: ["best buy"], cat: "best_buy" },
+      { keywords: ["discount tire", "firestone", "jiffy lube", "valvoline", "midas", "goodyear", "autozone", "o'reilly", "oreilly", "advance auto", "napa auto", "meineke", "christian brothers", "big o tires", "ntb", "telle tire", "car_repair", "tyres", "car_parts", "auto repair", "auto service"], cat: "auto_maintenance" },
+      { keywords: ["hy-vee", "hyvee", "aldi", "trader joe", "hen house", "price chopper", "sprouts", "kroger", "dillons", "publix", "safeway", "albertsons", "natural grocers", "supermarket", "grocery", "greengrocer", "bakery", "butcher"], cat: "grocery" },
+      { keywords: ["marshalls", "tj maxx", "t.j. maxx", "homegoods", "sierra", "homesense", "kohl", "jcpenney", "jc penney", "j.c. penney", "old navy", "gap", "banana republic", "nike", "adidas", "carter", "ross", "nordstrom", "macy", "j.crew", "clothes", "shoes", "department_store"], cat: "clothing" },
+      { keywords: ["restaurant", "cafe", "coffee", "starbucks", "chipotle", "panera", "mcdonald", "chick-fil-a", "wendy", "taco bell", "pizza", "grill", "bistro", "bar", "fast_food", "food_court", "ice_cream"], cat: "dining" },
+      { keywords: ["hotel", "marriott", "hilton", "hyatt", "airline", "airport", "avis", "hertz", "enterprise", "national car"], cat: "travel" },
+      { keywords: ["t-mobile", "verizon", "at&t", "evergy", "atmos", "olathe"], cat: "utilities_cell" }
+    ];
+
+    function renderCategories() {
+      const grid = document.getElementById('categoryGrid');
+      grid.innerHTML = '';
+      Object.entries(CATEGORIES).forEach(([key, cfg]) => {
+        const btn = document.createElement('button');
+        btn.className = 'cat-pill';
+        btn.id = `pill-${key}`;
+        btn.textContent = cfg.label;
+        btn.onclick = () => selectCategory(key, cfg.label);
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectCategory(catKey, placeDisplayName) {
+      document.querySelectorAll('.cat-pill').forEach(el => el.classList.remove('active'));
+      const activeBtn = document.getElementById(`pill-${catKey}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const cfg = CATEGORIES[catKey];
+      const rule = cfg.getRule(quarter);
+      document.getElementById('detectedPlace').textContent = placeDisplayName || cfg.label;
+      document.getElementById('bestCardName').textContent = rule.primary;
+      document.getElementById('bestCardRate').textContent = rule.rate;
+      document.getElementById('bestCardNotes').textContent = rule.notes;
+      const backupEl = document.getElementById('backupCardInfo');
+      if (rule.backup) {
+        backupEl.style.display = 'block';
+        backupEl.textContent = `💡 ${rule.backup}`;
+      } else {
+        backupEl.style.display = 'none';
+      }
+    }
+
+    function matchStoreToCategory(text) {
+      const lower = (text || "").toLowerCase();
+      for (const entry of STORE_KEYWORDS) {
+        for (const kw of entry.keywords) {
+          if (lower.includes(kw)) return entry.cat;
+        }
+      }
+      return null;
+    }
+
+    function onStoreSearch(val) {
+      if (!val.trim()) return;
+      const matchedCat = matchStoreToCategory(val);
+      if (matchedCat) {
+        selectCategory(matchedCat, `Store Match: "${val}" → ${CATEGORIES[matchedCat].label}`);
+      } else {
+        document.getElementById('detectedPlace').textContent = `Store: "${val}" (General Retail)`;
+        document.getElementById('bestCardName').textContent = "Check Targeted Offers / General Card";
+        document.getElementById('bestCardRate').textContent = "1% – 5% (Check Chase / U.S. Bank Offers)";
+        document.getElementById('bestCardNotes').textContent = "Walmart & Target are excluded from 5% Grocery. Check Chase Offers (8255/6046/4713) or U.S. Bank Cash-Back Deals (6395) first!";
+      }
+    }
+
+    async function detectStoreByGPS() {
+      const btn = document.getElementById('gpsBtn');
+      btn.textContent = "🛰️ Checking GPS & Nearby Stores...";
+      if (!navigator.geolocation) {
+        btn.textContent = "❌ Geolocation not supported";
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          const query = `[out:json][timeout:8];(node(around:150,${latitude},${longitude})["name"];way(around:150,${latitude},${longitude})["name"];);out center 15;`;
+          const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          const elements = (data.elements || []).filter(e => e.tags && e.tags.name);
+
+          if (elements.length === 0) {
+            btn.textContent = "📍 No named store within 150m — pick category below";
+            return;
+          }
+
+          const nearbyContainer = document.getElementById('nearbyContainer');
+          const nearbyList = document.getElementById('nearbyList');
+          nearbyContainer.style.display = 'block';
+          nearbyList.innerHTML = '';
+
+          const seen = new Set();
+          elements.forEach((el, idx) => {
+            const name = el.tags.name;
+            const osmType = el.tags.shop || el.tags.amenity || el.tags.brand || '';
+            if (seen.has(name)) return;
+            seen.add(name);
+
+            const chip = document.createElement('button');
+            chip.className = 'nearby-chip';
+            chip.textContent = osmType ? `${name} (${osmType})` : name;
+            chip.onclick = () => {
+              const cat = matchStoreToCategory(`${name} ${osmType}`);
+              if (cat) {
+                selectCategory(cat, `📍 ${name} (${osmType || 'Matched'})`);
+              } else {
+                onStoreSearch(name);
+              }
+            };
+            nearbyList.appendChild(chip);
+
+            if (idx === 0) chip.click();
+          });
+
+          btn.textContent = "✅ Nearby Stores Found (Tap to Refresh GPS)";
+        } catch (err) {
+          btn.textContent = "⚠️ Network error looking up POI — type store below";
+        }
+      }, () => {
+        btn.textContent = "⚠️ Location permission denied — pick category below";
+      }, { enableHighAccuracy: true, timeout: 8000 });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderCategories();
+      const params = new URLSearchParams(window.location.search);
+      const qStore = params.get('store') || params.get('q');
+      const autoGps = params.get('auto');
+      if (qStore) {
+        document.getElementById('storeInput').value = qStore;
+        onStoreSearch(qStore);
+      } else {
+        selectCategory('grocery');
+        if (autoGps === '1') {
+          detectStoreByGPS();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
