@@ -143,6 +143,7 @@
     document.getElementById('cfgBestBuy').textContent = ACTIVE_CONFIG.best_buy_1452_bonus.label;
 
     const CATEGORIES = {
+      // --- TOP PRIORITY: EVERYDAY SPENDING CATEGORIES ---
       grocery: {
         label: "🛒 Grocery Store",
         getRule: (q) => ({
@@ -150,33 +151,6 @@
           rate: "5% Cash Back / 5x UR",
           notes: "5% in Q4 2026 & Q1 2027 up to $1,500/qtr (excludes Walmart & Target).",
           backup: "Overflow (> $1,500/qtr): U.S. Bank Cash+ (6395) for 2% unlimited Grocery."
-        })
-      },
-      whole_foods: {
-        label: "🥬 Whole Foods / Amazon",
-        getRule: () => ({
-          primary: "Chase Amazon Prime (4713)",
-          rate: "5% Cash Back",
-          notes: "Unlimited 5% back at Whole Foods Market, Amazon Fresh, and Amazon.com.",
-          backup: "Backup: Chase Freedom (6046) 5% Grocery in Q4/Q1."
-        })
-      },
-      costco_warehouse: {
-        label: "📦 Costco Warehouse",
-        getRule: () => ({
-          primary: "Costco Anywhere Visa (Citi)",
-          rate: "2% Cash Back",
-          notes: "2% on all Costco in-warehouse and Costco.com purchases (Visa only in warehouse).",
-          backup: "Backup: Any Visa card (Chase Freedom/Sapphire earn 1x)."
-        })
-      },
-      gas_ev: {
-        label: "⛽ Gas & EV Charging",
-        getRule: () => ({
-          primary: "Costco Anywhere Visa (Citi)",
-          rate: "5% Costco Gas / 4% Other Gas & EV",
-          notes: "5% at Costco Gas, 4% at all other eligible gas stations & EV charging (up to $7,000/yr).",
-          backup: "Backup: My Best Buy Visa (1452) earns 3% on Gas."
         })
       },
       dining: {
@@ -193,36 +167,13 @@
           backup: "Check Chase Offers & U.S. Bank Cash-Back Deals for targeted 5%-10% restaurant deals."
         })
       },
-      best_buy: {
-        label: "💻 Best Buy",
+      gas_ev: {
+        label: "⛽ Gas & EV Charging",
         getRule: () => ({
-          primary: "My Best Buy Visa (1452)",
-          rate: "5% in Best Buy Rewards",
-          notes: "5% back in Best Buy Rewards or promotional financing.",
-          backup: "Check Chase Offers on 8255/6046 first for targeted 5%-10% statement credits."
-        })
-      },
-      auto_maintenance: {
-        label: "🔧 Auto Maintenance",
-        getRule: (q) => q.q === 4 && ACTIVE_CONFIG.best_buy_1452_bonus.chosen_category === "auto" ? ({
-          primary: "My Best Buy Visa (1452)",
-          rate: "5% Q4 Targeted Offer",
-          notes: "5% back on Auto Maintenance (tires, oil changes, auto repair, dealerships, AutoZone, O'Reilly) through 12/31/2026 (up to $1,500 spend / $75 reward).",
-          backup: "Backup: Check Chase Offers (8255/6046) or U.S. Bank Deals."
-        }) : ({
-          primary: "Check Chase / U.S. Bank Offers",
-          rate: "1% Base + Targeted Offers",
-          notes: "Check Chase Offers or U.S. Bank Cash-Back Deals for auto service/parts credits.",
-          backup: "Default 1x UR on Chase Sapphire (8255) or Freedom (6046)."
-        })
-      },
-      clothing: {
-        label: "🛍️ TJX / Kohl's / JCP",
-        getRule: () => ({
-          primary: "Wife's Store Card (TJX / Kohl's / JCPenney)",
-          rate: "5% TJX / 7.5% Kohl's + Store Coupons",
-          notes: "• TJ Maxx, Marshalls, HomeGoods, Sierra → Wife's TJX Rewards Card (5%)\n• Kohl's → Wife's Kohl's Card (7.5% rewards + exclusive coupons)\n• JCPenney → Wife's JCPenney Card (CashPass + coupons)",
-          backup: "Other clothing stores: Check Chase Offers (8255/6046/4713) or U.S. Bank Deals."
+          primary: "Costco Anywhere Visa (Citi)",
+          rate: "5% Costco Gas / 4% Other Gas & EV",
+          notes: "5% at Costco Gas, 4% at all other eligible gas stations & EV charging (up to $7,000/yr).",
+          backup: "Backup: My Best Buy Visa (1452) earns 3% on Gas."
         })
       },
       travel: {
@@ -233,7 +184,7 @@
           notes: "Use Chase Sapphire (8255) for rental cars (Primary Auto CDW insurance) & trip protection; Costco Citi for 3% cash back.",
           backup: ACTIVE_CONFIG.best_buy_1452_bonus.chosen_category === "travel"
             ? "Best Buy Visa (1452) active at 5% for Travel (up to $1,500)!"
-            : "Can also activate 5% Travel on Best Buy Visa (1452) for Q4."
+            : "Always book rental cars on Sapphire 8255 for Primary Auto Insurance."
         })
       },
       utilities_cell: {
@@ -257,6 +208,57 @@
           rate: "3x UR Points",
           notes: "3x Ultimate Rewards on Select Streaming year-round (5% on Freedom 6046 starts in Q1).",
           backup: "U.S. Bank Cash+ (6395) if Streaming is selected as a 5% category."
+        })
+      },
+      auto_maintenance: {
+        label: "🔧 Auto Maintenance",
+        getRule: (q) => q.q === 4 && ACTIVE_CONFIG.best_buy_1452_bonus.chosen_category === "auto" ? ({
+          primary: "My Best Buy Visa (1452)",
+          rate: "5% Q4 Targeted Offer",
+          notes: "5% back on Auto Maintenance through 12/31/2026 (up to $1,500 spend / $75 reward).",
+          backup: "Backup: Check Chase Offers (8255/6046) or U.S. Bank Deals."
+        }) : ({
+          primary: "Check Chase / U.S. Bank Offers",
+          rate: "1% Base + Targeted Offers",
+          notes: "Check Chase Offers or U.S. Bank Cash-Back Deals for auto service/parts credits.",
+          backup: "Default 1x UR on Chase Sapphire (8255) or Freedom (6046)."
+        })
+      },
+      // --- BOTTOM: STORE-SPECIFIC & MEMBERSHIP CARDS ---
+      whole_foods: {
+        label: "🥬 Whole Foods / Amazon",
+        getRule: () => ({
+          primary: "Chase Amazon Prime (4713)",
+          rate: "5% Cash Back",
+          notes: "Unlimited 5% back at Whole Foods Market, Amazon Fresh, and Amazon.com.",
+          backup: "Backup: Chase Freedom (6046) 5% Grocery in Q4/Q1."
+        })
+      },
+      clothing: {
+        label: "🛍️ TJX / Kohl's / JCP",
+        getRule: () => ({
+          primary: "Wife's Store Card (TJX / Kohl's / JCPenney)",
+          rate: "5% TJX / 7.5% Kohl's + Store Coupons",
+          notes: "• TJ Maxx, Marshalls, HomeGoods, Sierra → Wife's TJX Rewards Card (5%)\n• Kohl's → Wife's Kohl's Card (7.5% rewards + exclusive coupons)\n• JCPenney → Wife's JCPenney Card (CashPass + coupons)",
+          backup: "Other clothing stores: Check Chase Offers (8255/6046/4713) or U.S. Bank Deals."
+        })
+      },
+      best_buy: {
+        label: "💻 Best Buy",
+        getRule: () => ({
+          primary: "My Best Buy Visa (1452)",
+          rate: "5% in Best Buy Rewards",
+          notes: "5% back in Best Buy Rewards or promotional financing.",
+          backup: "Check Chase Offers on 8255/6046 first for targeted 5%-10% statement credits."
+        })
+      },
+      costco_warehouse: {
+        label: "📦 Costco Warehouse",
+        getRule: () => ({
+          primary: "Costco Anywhere Visa (Citi)",
+          rate: "2% Cash Back",
+          notes: "2% on all Costco in-warehouse and Costco.com purchases (Visa only in warehouse).",
+          backup: "Backup: Any Visa card (Chase Freedom/Sapphire earn 1x)."
         })
       }
     };
