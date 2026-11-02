@@ -330,6 +330,55 @@
       }
     }
 
+    async function lookupCoords(latitude, longitude) {
+      const btn = document.getElementById('gpsBtn');
+      btn.textContent = "🛰️ Looking up stores near your GPS...";
+      try {
+        const query = `[out:json][timeout:8];(node(around:150,${latitude},${longitude})["name"];way(around:150,${latitude},${longitude})["name"];);out center 15;`;
+        const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const elements = (data.elements || []).filter(e => e.tags && e.tags.name);
+
+        if (elements.length === 0) {
+          btn.textContent = "📍 No named store within 150m — pick category below";
+          return;
+        }
+
+        const nearbyContainer = document.getElementById('nearbyContainer');
+        const nearbyList = document.getElementById('nearbyList');
+        nearbyContainer.style.display = 'block';
+        nearbyList.innerHTML = '';
+
+        const seen = new Set();
+        elements.forEach((el, idx) => {
+          const name = el.tags.name;
+          const osmType = el.tags.shop || el.tags.amenity || el.tags.brand || '';
+          if (seen.has(name)) return;
+          seen.add(name);
+
+          const chip = document.createElement('button');
+          chip.className = 'nearby-chip';
+          chip.textContent = osmType ? `${name} (${osmType})` : name;
+          chip.onclick = () => {
+            const cat = matchStoreToCategory(`${name} ${osmType}`);
+            if (cat) {
+              selectCategory(cat, `📍 ${name} (${osmType || 'Matched'})`);
+            } else {
+              onStoreSearch(name);
+            }
+          };
+          nearbyList.appendChild(chip);
+
+          if (idx === 0) chip.click();
+        });
+
+        btn.textContent = "✅ Nearby Stores Found (Tap to Refresh GPS)";
+      } catch (err) {
+        btn.textContent = "⚠️ Network error looking up POI — type store below";
+      }
+    }
+
     async function detectStoreByGPS() {
       const btn = document.getElementById('gpsBtn');
       btn.textContent = "🛰️ Checking GPS & Nearby Stores...";
@@ -337,65 +386,28 @@
         btn.textContent = "❌ Geolocation not supported";
         return;
       }
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        try {
-          const query = `[out:json][timeout:8];(node(around:150,${latitude},${longitude})["name"];way(around:150,${latitude},${longitude})["name"];);out center 15;`;
-          const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-          const res = await fetch(url);
-          const data = await res.json();
-          const elements = (data.elements || []).filter(e => e.tags && e.tags.name);
-
-          if (elements.length === 0) {
-            btn.textContent = "📍 No named store within 150m — pick category below";
-            return;
-          }
-
-          const nearbyContainer = document.getElementById('nearbyContainer');
-          const nearbyList = document.getElementById('nearbyList');
-          nearbyContainer.style.display = 'block';
-          nearbyList.innerHTML = '';
-
-          const seen = new Set();
-          elements.forEach((el, idx) => {
-            const name = el.tags.name;
-            const osmType = el.tags.shop || el.tags.amenity || el.tags.brand || '';
-            if (seen.has(name)) return;
-            seen.add(name);
-
-            const chip = document.createElement('button');
-            chip.className = 'nearby-chip';
-            chip.textContent = osmType ? `${name} (${osmType})` : name;
-            chip.onclick = () => {
-              const cat = matchStoreToCategory(`${name} ${osmType}`);
-              if (cat) {
-                selectCategory(cat, `📍 ${name} (${osmType || 'Matched'})`);
-              } else {
-                onStoreSearch(name);
-              }
-            };
-            nearbyList.appendChild(chip);
-
-            if (idx === 0) chip.click();
-          });
-
-          btn.textContent = "✅ Nearby Stores Found (Tap to Refresh GPS)";
-        } catch (err) {
-          btn.textContent = "⚠️ Network error looking up POI — type store below";
-        }
-      }, () => {
-        btn.textContent = "⚠️ Location permission denied — pick category below";
-      }, { enableHighAccuracy: true, timeout: 8000 });
+      navigator.geolocation.getCurrentPosition(
+        (pos) => lookupCoords(pos.coords.latitude, pos.coords.longitude),
+        () => {
+          btn.textContent = "⚠️ Enable Location in iPhone Settings → Privacy → Location → Safari/Chrome";
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
     }
 
     window.addEventListener('DOMContentLoaded', () => {
       renderCategories();
       const params = new URLSearchParams(window.location.search);
       const qStore = params.get('store') || params.get('q');
+      const qLat = parseFloat(params.get('lat'));
+      const qLon = parseFloat(params.get('lon'));
       const autoGps = params.get('auto');
       if (qStore) {
         document.getElementById('storeInput').value = qStore;
         onStoreSearch(qStore);
+      } else if (!isNaN(qLat) && !isNaN(qLon)) {
+        selectCategory('grocery');
+        lookupCoords(qLat, qLon);
       } else {
         selectCategory('grocery');
         if (autoGps === '1') {
