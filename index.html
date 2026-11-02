@@ -143,7 +143,7 @@
     document.getElementById('cfgBestBuy').textContent = ACTIVE_CONFIG.best_buy_1452_bonus.label;
 
     const CATEGORIES = {
-      // --- TOP PRIORITY: EVERYDAY SPENDING CATEGORIES ---
+      // --- 1. TOP PRIORITY: IN-PERSON EVERYDAY CHECKOUT ---
       grocery: {
         label: "🛒 Grocery Store",
         getRule: (q) => ({
@@ -167,49 +167,6 @@
           backup: "Check Chase Offers & U.S. Bank Cash-Back Deals for targeted 5%-10% restaurant deals."
         })
       },
-      gas_ev: {
-        label: "⛽ Gas & EV Charging",
-        getRule: () => ({
-          primary: "Costco Anywhere Visa (Citi)",
-          rate: "5% Costco Gas / 4% Other Gas & EV",
-          notes: "5% at Costco Gas, 4% at all other eligible gas stations & EV charging (up to $7,000/yr).",
-          backup: "Backup: My Best Buy Visa (1452) earns 3% on Gas."
-        })
-      },
-      travel: {
-        label: "✈️ Travel (Flights/Hotels/Cars)",
-        getRule: () => ({
-          primary: "Costco Citi (3%) or Chase Sapphire (8255)",
-          rate: "3% Cash Back or 2x UR + Primary CDW",
-          notes: "Use Chase Sapphire (8255) for rental cars (Primary Auto CDW insurance) & trip protection; Costco Citi for 3% cash back.",
-          backup: ACTIVE_CONFIG.best_buy_1452_bonus.chosen_category === "travel"
-            ? "Best Buy Visa (1452) active at 5% for Travel (up to $1,500)!"
-            : "Always book rental cars on Sapphire 8255 for Primary Auto Insurance."
-        })
-      },
-      utilities_cell: {
-        label: "⚡ Utilities & Cell Phone",
-        getRule: () => ({
-          primary: "U.S. Bank Cash+ (6395)",
-          rate: "5% Cash Back",
-          notes: "Enrolled 5% categories: Home Utilities (Evergy, Atmos, City of Olathe) + Cell Phone Providers (up to $2,000/qtr).",
-          backup: "Keep recurring bills pointed to 6395."
-        })
-      },
-      streaming: {
-        label: "📺 Streaming Services",
-        getRule: (q) => q.q === 1 ? ({
-          primary: "Chase Freedom (6046)",
-          rate: "5% Cash Back (Q1 Bonus)",
-          notes: "Q1 5% rotating category covers Top Streaming Services.",
-          backup: "Backup: Chase Sapphire (8255) earns 3x on Select Streaming year-round."
-        }) : ({
-          primary: "Chase Sapphire (8255)",
-          rate: "3x UR Points",
-          notes: "3x Ultimate Rewards on Select Streaming year-round (5% on Freedom 6046 starts in Q1).",
-          backup: "U.S. Bank Cash+ (6395) if Streaming is selected as a 5% category."
-        })
-      },
       auto_maintenance: {
         label: "🔧 Auto Maintenance",
         getRule: (q) => q.q === 4 && ACTIVE_CONFIG.best_buy_1452_bonus.chosen_category === "auto" ? ({
@@ -220,11 +177,20 @@
         }) : ({
           primary: "Check Chase / U.S. Bank Offers",
           rate: "1% Base + Targeted Offers",
-          notes: "Check Chase Offers or U.S. Bank Cash-Back Deals for auto service/parts credits.",
+          notes: "Check Chase Offers (8255/6046) or U.S. Bank Cash-Back Deals (6395) for auto service/parts credits. (Enroll Best Buy 1452 early in Q1 if offered!).",
           backup: "Default 1x UR on Chase Sapphire (8255) or Freedom (6046)."
         })
       },
-      // --- BOTTOM: STORE-SPECIFIC & MEMBERSHIP CARDS ---
+      gas_ev: {
+        label: "⛽ Gas & EV Charging",
+        getRule: () => ({
+          primary: "Costco Anywhere Visa (Citi)",
+          rate: "5% Costco Gas / 4% Other Gas & EV",
+          notes: "5% at Costco Gas, 4% at all other eligible gas stations & EV charging (up to $7,000/yr).",
+          backup: "Backup: My Best Buy Visa (1452) earns 3% on Gas."
+        })
+      },
+      // --- 2. IN-PERSON STORE & MEMBERSHIP CARDS ---
       whole_foods: {
         label: "🥬 Whole Foods / Amazon",
         getRule: () => ({
@@ -259,6 +225,41 @@
           rate: "2% Cash Back",
           notes: "2% on all Costco in-warehouse and Costco.com purchases (Visa only in warehouse).",
           backup: "Backup: Any Visa card (Chase Freedom/Sapphire earn 1x)."
+        })
+      },
+      // --- 3. ONLINE BOOKINGS & RECURRING AUTOPAY BILLS ---
+      travel: {
+        label: "✈️ Travel (Online/Rentals)",
+        getRule: () => ({
+          primary: "Costco Citi (3%) or Chase Sapphire (8255)",
+          rate: "3% Cash Back or 2x UR + Primary CDW",
+          notes: "Use Chase Sapphire (8255) for rental cars (Primary Auto CDW insurance) & trip protection; Costco Citi for 3% cash back.",
+          backup: ACTIVE_CONFIG.best_buy_1452_bonus.chosen_category === "travel"
+            ? "Best Buy Visa (1452) active at 5% for Travel (up to $1,500)!"
+            : "Always book rental cars on Sapphire 8255 for Primary Auto Insurance."
+        })
+      },
+      utilities_cell: {
+        label: "⚡ Utilities & Cell (Autopay)",
+        getRule: () => ({
+          primary: "U.S. Bank Cash+ (6395)",
+          rate: "5% Cash Back",
+          notes: "Enrolled 5% categories: Home Utilities (Evergy, Atmos, City of Olathe) + Cell Phone Providers (up to $2,000/qtr).",
+          backup: "Keep recurring bills pointed to 6395."
+        })
+      },
+      streaming: {
+        label: "📺 Streaming (Autopay)",
+        getRule: (q) => q.q === 1 ? ({
+          primary: "Chase Freedom (6046)",
+          rate: "5% Cash Back (Q1 Bonus)",
+          notes: "Q1 5% rotating category covers Top Streaming Services.",
+          backup: "Backup: Chase Sapphire (8255) earns 3x on Select Streaming year-round."
+        }) : ({
+          primary: "Chase Sapphire (8255)",
+          rate: "3x UR Points",
+          notes: "3x Ultimate Rewards on Select Streaming year-round (5% on Freedom 6046 starts in Q1).",
+          backup: "U.S. Bank Cash+ (6395) if Streaming is selected as a 5% category."
         })
       }
     };
