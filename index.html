@@ -107,6 +107,10 @@
       <span>Best Buy Visa (1452) Q4 5%:</span>
       <span class="config-val" id="cfgBestBuy">Not Enrolled / Select Category</span>
     </div>
+    <div class="config-row">
+      <span>Prime Visa (4713) Bonus:</span>
+      <span class="config-val" id="cfgPrime">5% Groc/Dining/Gas thru 1/31 ($1k cap)</span>
+    </div>
   </div>
 
   <script>
@@ -127,8 +131,23 @@
         active: false,
         chosen_category: "none", // Options: "clothing", "auto", "travel", "utilities", "grocery", "none"
         label: "Unenrolled (Q4 window closed 10/31; enroll early in Q1!)"
+      },
+      // Targeted Prime Visa offer (email 11/3/2026): total 5% at restaurants, grocery stores & gas
+      // stations on up to $1,000 combined, 11/1/2026 - 1/31/2027. Must be activated.
+      // Amazon / Whole Foods purchases do NOT count (they already earn 5%).
+      prime_4713_bonus: {
+        start: "2026-11-01",
+        end: "2027-01-31",
+        cap: "$1,000 combined",
+        label: "5% Groc/Dining/Gas thru 1/31 ($1k cap)"
       }
     };
+
+    function isPrimeBonusActive() {
+      const today = new Date().toISOString().slice(0, 10);
+      const b = ACTIVE_CONFIG.prime_4713_bonus;
+      return today >= b.start && today <= b.end;
+    }
 
     function getCurrentQuarter() {
       const now = new Date();
@@ -141,6 +160,9 @@
     const quarter = getCurrentQuarter();
     document.getElementById('quarterBadge').textContent = quarter.label;
     document.getElementById('cfgBestBuy').textContent = ACTIVE_CONFIG.best_buy_1452_bonus.label;
+    document.getElementById('cfgPrime').textContent = isPrimeBonusActive()
+      ? ACTIVE_CONFIG.prime_4713_bonus.label
+      : "Expired (ended 1/31/2027)";
 
     const CATEGORIES = {
       // --- 1. TOP PRIORITY: IN-PERSON EVERYDAY CHECKOUT ---
@@ -150,22 +172,40 @@
           primary: "Chase Freedom (6046)",
           rate: "5% Cash Back / 5x UR",
           notes: "5% in Q4 2026 & Q1 2027 up to $1,500/qtr (excludes Walmart & Target).",
-          backup: "Overflow (> $1,500/qtr): U.S. Bank Cash+ (6395) for 2% unlimited Grocery."
+          backup: isPrimeBonusActive()
+            ? "Freedom cap hit? → Prime Visa (4713) 5% (bonus thru 1/31, $1,000 cap) → then Cash+ (6395) 2%."
+            : "Overflow (> $1,500/qtr): U.S. Bank Cash+ (6395) for 2% unlimited Grocery."
         })
       },
       dining: {
         label: "🍽️ Dining & Restaurants",
-        getRule: (q) => q.q === 4 ? ({
-          primary: "Chase Freedom (6046)",
-          rate: "5% Cash Back (Q4 Bonus)",
-          notes: "Q4 5% rotating category covers Dining & Restaurants (shares $1,500/qtr cap with Grocery).",
-          backup: "Backup / Overflow: Chase Sapphire (8255) for 3x UR or Costco Citi Visa for 3%."
-        }) : ({
-          primary: "Chase Sapphire (8255) or Costco Citi",
-          rate: "3x UR Points / 3% Cash Back",
-          notes: "Use Chase Sapphire (8255) for 3x Ultimate Rewards or Costco Citi Visa for 3% cash back.",
-          backup: "Check Chase Offers & U.S. Bank Cash-Back Deals for targeted 5%-10% restaurant deals."
-        })
+        getRule: (q) => {
+          const primeOn = isPrimeBonusActive();
+          if (q.q === 4) {
+            return {
+              primary: "Chase Freedom (6046)",
+              rate: "5% Cash Back (Q4 Bonus)",
+              notes: "Q4 5% rotating category covers Dining & Restaurants (shares $1,500/qtr cap with Grocery).",
+              backup: primeOn
+                ? "Freedom cap hit? → Prime Visa (4713) 5% (bonus thru 1/31, $1,000 cap) → then Sapphire (8255) 3x."
+                : "Backup / Overflow: Chase Sapphire (8255) for 3x UR or Costco Citi Visa for 3%."
+            };
+          }
+          if (primeOn) {
+            return {
+              primary: "Prime Visa (4713)",
+              rate: "5% Cash Back (Bonus thru 1/31)",
+              notes: "Freedom's Q1 categories don't include Dining, so the Prime Visa bonus (5% on up to $1,000 combined Groc/Dining/Gas) wins in January.",
+              backup: "Prime $1,000 cap used up? → Chase Sapphire (8255) 3x UR or Costco Citi 3%."
+            };
+          }
+          return {
+            primary: "Chase Sapphire (8255) or Costco Citi",
+            rate: "3x UR Points / 3% Cash Back",
+            notes: "Use Chase Sapphire (8255) for 3x Ultimate Rewards or Costco Citi Visa for 3% cash back.",
+            backup: "Check Chase Offers & U.S. Bank Cash-Back Deals for targeted 5%-10% restaurant deals."
+          };
+        }
       },
       auto_maintenance: {
         label: "🔧 Auto Maintenance",
@@ -187,7 +227,9 @@
           primary: "Costco Anywhere Visa (Citi)",
           rate: "5% Costco Gas / 4% Other Gas & EV",
           notes: "5% at Costco Gas, 4% at all other eligible gas stations & EV charging (up to $7,000/yr).",
-          backup: "Backup: My Best Buy Visa (1452) earns 3% on Gas."
+          backup: isPrimeBonusActive()
+            ? "Prime Visa (4713) also pays 5% at gas thru 1/31, but save its $1,000 cap for Grocery/Dining overflow (worth +2-3% there vs +1% here). Use it for non-Costco gas only if cap room is left in late January."
+            : "Backup: My Best Buy Visa (1452) earns 3% on Gas."
         })
       },
       // --- 2. IN-PERSON STORE & MEMBERSHIP CARDS ---
