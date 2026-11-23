@@ -449,32 +449,94 @@
       }
     }
 
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 5000) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, { ...options, signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchPhotonPOIs(latitude, longitude) {
+      const url = `https://photon.komoot.io/reverse?lat=${latitude}&lon=${longitude}&radius=0.25&limit=30`;
+      const data = await fetchWithTimeout(url, {}, 5000);
+      const skipKeys = new Set(["highway", "boundary", "place", "landuse", "railway", "waterway"]);
+      const out = [];
+      for (const f of (data.features || [])) {
+        const p = f.properties || {};
+        if (!p.name || skipKeys.has(p.osm_key)) continue;
+        out.push({
+          name: p.name,
+          osmKey: p.osm_key || "",
+          osmType: p.osm_value || ""
+        });
+      }
+      return out;
+    }
+
+    async function fetchOverpassPOIs(latitude, longitude) {
+      const query = `[out:json][timeout:5];(node(around:150,${latitude},${longitude})["name"];way(around:150,${latitude},${longitude})["name"];);out center 20;`;
+      const body = `data=${encodeURIComponent(query)}`;
+      const endpoints = [
+        "https://overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter"
+      ];
+      for (const ep of endpoints) {
+        try {
+          const data = await fetchWithTimeout(ep, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
+            body
+          }, 5000);
+          const out = [];
+          for (const el of (data.elements || [])) {
+            const tags = el.tags || {};
+            if (!tags.name || tags.highway) continue;
+            const osmType = tags.shop || tags.amenity || tags.leisure || tags.brand || "";
+            const osmKey = tags.shop ? "shop" : (tags.amenity ? "amenity" : (tags.leisure ? "leisure" : ""));
+            out.push({ name: tags.name, osmKey, osmType });
+          }
+          if (out.length > 0) return out;
+        } catch (_) {
+          // try next Overpass mirror
+        }
+      }
+      throw new Error("All POI providers failed");
+    }
+
     async function lookupCoords(latitude, longitude) {
       const btn = document.getElementById('gpsBtn');
       btn.textContent = "🛰️ Looking up stores near your GPS...";
       try {
-        const query = `[out:json][timeout:8];(node(around:150,${latitude},${longitude})["name"];way(around:150,${latitude},${longitude})["name"];);out center 20;`;
-        const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const rawElements = (data.elements || []).filter(e => e.tags && e.tags.name && !e.tags.highway);
+        let rawPlaces = [];
+        try {
+          rawPlaces = await fetchPhotonPOIs(latitude, longitude);
+        } catch (_) {
+          rawPlaces = [];
+        }
+        if (rawPlaces.length === 0) {
+          rawPlaces = await fetchOverpassPOIs(latitude, longitude);
+        }
 
-        if (rawElements.length === 0) {
-          btn.textContent = "📍 No named store within 150m — pick category below";
+        if (rawPlaces.length === 0) {
+          btn.textContent = "📍 No named store within 250m — pick category below";
           return;
         }
 
-        // Deduplicate and rank known stores first
+        // Deduplicate and rank matched stores first while preserving nearest-first order
         const seen = new Set();
         const places = [];
-        rawElements.forEach((el) => {
-          const name = el.tags.name;
-          if (seen.has(name)) return;
-          seen.add(name);
-          const osmType = el.tags.shop || el.tags.amenity || el.tags.leisure || el.tags.brand || '';
-          const matched = matchStoreToCategory(`${name} ${osmType}`);
-          const score = (matched ? 10 : 0) + (osmType ? 2 : 0);
-          places.push({ name, osmType, matched, score });
+        rawPlaces.forEach((item, idx) => {
+          if (seen.has(item.name)) return;
+          seen.add(item.name);
+          const matched = matchStoreToCategory(`${item.name} ${item.osmType}`);
+          const hasUsefulTag = ["shop", "amenity", "leisure", "tourism"].includes(item.osmKey);
+          const score = (matched ? 100 : 0) + (hasUsefulTag ? 10 : 0) - idx * 0.1;
+          places.push({ name: item.name, osmType: item.osmType, matched, score });
         });
         places.sort((a, b) => b.score - a.score);
 
@@ -483,7 +545,7 @@
         nearbyContainer.style.display = 'block';
         nearbyList.innerHTML = '';
 
-        places.forEach((p, idx) => {
+        places.slice(0, 12).forEach((p, idx) => {
           const chip = document.createElement('button');
           chip.className = 'nearby-chip';
           chip.textContent = p.osmType ? `${p.name} (${p.osmType})` : p.name;
